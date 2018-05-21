@@ -2,6 +2,10 @@ package com.gangstakittenz.rocketreplays.lambda;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -22,7 +26,24 @@ public class MapLoader implements RequestHandler<Map<String,Object>, String> {
             HttpResponse response = apiClient.execute(getMapsRequest);
             String responseString = getResponseString(response);
 
-            return responseString;
+            JsonObject mapsPayload = new Gson().fromJson(responseString,JsonObject.class);
+
+            String nextUrl = mapsPayload.get("next").getAsString();
+
+            JsonArray resultsArray = mapsPayload.getAsJsonArray("results");
+            for(JsonElement mapElement : resultsArray){
+                String url = mapElement.getAsJsonObject().get("url").getAsString();
+                String title = mapElement.getAsJsonObject().get("title").getAsString();
+                String slug = mapElement.getAsJsonObject().get("slug").getAsString();
+                String image = mapElement.getAsJsonObject().get("image").getAsString();
+
+                int startIndex = url.indexOf("maps/") + 5;
+                int endingIndex = url.length()-1;
+                int mapID = Integer.parseInt(url.substring(startIndex,endingIndex));
+
+                return Integer.toString(mapID);
+            }
+            return null;
         }
         catch(Exception e){
                 return "Something went wrong:" + e.getMessage();
